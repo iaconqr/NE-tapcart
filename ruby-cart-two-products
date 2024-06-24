@@ -1,0 +1,57 @@
+# This script applies a 100% discount to a specific gift product in the cart
+class DiscountGiftProduct
+  def initialize(cart, gift_product_id, qualifying_product_tag)
+    @cart = cart
+    @gift_product_id = gift_product_id
+    @qualifying_product_tag = qualifying_product_tag
+  end
+
+  def apply
+    # Calculate the total quantity of products in the cart
+    total_quantity = @cart.line_items.inject(0) { |sum, line_item| sum + line_item.quantity }
+
+    # Check if there are more than one product in the cart
+    if total_quantity > 1
+      qualifying_product_in_cart = false
+
+      # Check if any qualifying product with the specified tag is in the cart
+      @cart.line_items.each do |line_item|
+        if line_item.variant.product.tags.include?(@qualifying_product_tag)
+          qualifying_product_in_cart = true
+          break
+        end
+      end
+
+      if qualifying_product_in_cart
+        # Apply the discount to the gift product
+        @cart.line_items.each do |line_item|
+          if line_item.variant.product.id == @gift_product_id
+            line_item.change_line_price(Money.zero, message: "Producto de regalo")
+          end
+        end
+      else
+        # Remove the gift product if the qualifying product is not in the cart
+        @cart.line_items = @cart.line_items.reject do |line_item|
+          line_item.variant.product.id == @gift_product_id
+        end
+      end
+    else
+      # Remove the gift product if there are not more than one product in the cart
+      @cart.line_items = @cart.line_items.reject do |line_item|
+        line_item.variant.product.id == @gift_product_id
+      end
+    end
+  end
+end
+
+# Assuming the environment provides Input and Output
+if defined?(Input) && defined?(Output)
+  gift_product_id = 7914964943004  # Gift product ID
+  qualifying_product_tag = "cubrebocas"  # Qualifying product tag
+
+  DiscountGiftProduct.new(Input.cart, gift_product_id, qualifying_product_tag).apply
+
+  Output.cart = Input.cart
+else
+  puts 
+end
